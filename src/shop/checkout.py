@@ -7,6 +7,8 @@ Do not change the constants: the tests rely on them.
 
 import re
 
+from shop.money import percent_of
+
 PROMO_CODES = {"WELCOME10": 10, "SUMMER15": 15, "VIP35": 35}
 SUPPORTED_CITIES = ("msk", "spb")
 MAX_DISCOUNT_PERCENT = 30
@@ -56,4 +58,7 @@ def calculate_order_total(
     shipping_city: str = "",
 ) -> int | None:
     """Return the order total in kopecks, or None if the order is invalid."""
-    ...
+    if validate_order(lines, promo_code, shipping_city) is not None:
+        return None
+    subtotal = sum(int(line["qty"]) * int(line["unit_price_kopecks"]) for line in lines)
+    return subtotal + percent_of(subtotal, VAT_PERCENT)
