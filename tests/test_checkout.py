@@ -56,7 +56,11 @@ def test_missing_line_key_is_rejected() -> None:
 
 def test_non_numeric_quantity_is_rejected() -> None:
     """Spec 3, rule 4: `qty` must be a whole number."""
-    ...
+    for qty in ("", "many", "1.5", "+", "1__0", "²"):
+        order = [line(qty=qty)]
+        reason = validate_order(order)
+        assert isinstance(reason, str) and reason
+        assert calculate_order_total(order) is None
 
 
 def test_zero_quantity_is_rejected() -> None:
