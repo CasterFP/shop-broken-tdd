@@ -33,6 +33,8 @@ def validate_order(
             return "SKU must not be empty"
         if re.fullmatch(r"[+-]?\d+(?:_\d+)*", line["qty"].strip()) is None:
             return "Quantity must be an integer"
+        if int(line["qty"]) <= 0:
+            return "Quantity must be positive"
     return None
 
 
