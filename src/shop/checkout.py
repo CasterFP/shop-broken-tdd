@@ -43,6 +43,8 @@ def validate_order(
         if line["sku"] in seen_skus:
             return "SKU must not repeat"
         seen_skus.add(line["sku"])
+    if promo_code and promo_code not in PROMO_CODES:
+        return "Promo code is not supported"
     return None
 
 
