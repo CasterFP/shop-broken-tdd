@@ -175,3 +175,22 @@ def test_vat_is_charged_on_the_discounted_sum() -> None:
     assert calculate_order_total([line(unit_price_kopecks="1055")], "WELCOME10") == 1_139
     assert calculate_order_total([line(unit_price_kopecks="1055")], "WELCOME10", "msk") == 59_939
     assert calculate_order_total([line(unit_price_kopecks="3")]) == 4
+
+
+def test_integer_conversion_rejects_invalid_whitespace_and_long_strings() -> None:
+    """Validation must reject inputs that int() cannot parse without throwing."""
+    for key in ("qty", "unit_price_kopecks"):
+        for value in ("\x1c1", "1\x1f", "9" * 4301):
+            item = line()
+            item[key] = value
+            reason = validate_order([item])
+            assert isinstance(reason, str) and reason
+            assert calculate_order_total([item]) is None
+
+
+def test_spec_example_with_tier_promo_and_delivery() -> None:
+    """Example 3 uses the tier rather than the smaller promo before delivery."""
+    assert (
+        calculate_order_total([line(qty="50", unit_price_kopecks="1990")], "WELCOME10", "msk")
+        == 160_290
+    )
