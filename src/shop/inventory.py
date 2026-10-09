@@ -34,7 +34,7 @@ def low_stock_items(
 def write_off(stock: dict[str, int], sku: str, amount: int) -> dict[str, int]:
     """Write `amount` units of `sku` off the books and return the updated stock."""
     remaining = stock.get(sku, 0) - amount
-    if remaining == 0:
+    if remaining <= 0:
         stock.pop(sku, None)
     else:
         stock[sku] = remaining
