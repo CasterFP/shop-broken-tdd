@@ -37,6 +37,8 @@ def validate_order(
             return "Quantity must be positive"
         if re.fullmatch(r"[+-]?\d+(?:_\d+)*", line["unit_price_kopecks"].strip()) is None:
             return "Unit price must be an integer"
+        if int(line["unit_price_kopecks"]) < 0:
+            return "Unit price must not be negative"
     return None
 
 
