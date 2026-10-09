@@ -113,7 +113,12 @@ def test_unsupported_city_is_rejected() -> None:
 
 def test_valid_order_passes_validation() -> None:
     """Spec 3: a good order gets None back instead of a reason."""
-    ...
+    item = line(qty=" +1_0 ", unit_price_kopecks=" ١_٠٠ ")
+    item["extra"] = "ignored"
+    assert validate_order([item, line(sku="SKU-2", unit_price_kopecks="0")]) is None
+    for promo in ("", "WELCOME10", "SUMMER15", "VIP35"):
+        for city in ("", "msk", "spb"):
+            assert validate_order([line()], promo, city) is None
 
 
 def test_no_discount_below_first_tier() -> None:
