@@ -6,6 +6,7 @@ Do not change the constants: the tests rely on them.
 """
 
 import re
+import sys
 
 from shop.money import percent_of
 
@@ -17,6 +18,18 @@ SHIPPING_KOPEKS = 49_000
 FREE_DELIVERY_FROM_KOPEKS = 500_000
 TIER_DISCOUNTS = ((10, 5), (25, 10), (50, 15))
 REQUIRED_LINE_KEYS = ("sku", "qty", "unit_price_kopecks")
+
+
+def _is_integer(value: str) -> bool:
+    """Check decimal int syntax and its runtime conversion limit without raising."""
+    # str.strip accepts four control characters that int does not accept.
+    if any(character in value for character in "\x1c\x1d\x1e\x1f"):
+        return False
+    if re.fullmatch(r"[+-]?\d+(?:_\d+)*", value.strip()) is None:
+        return False
+    limit = sys.get_int_max_str_digits()
+    digits = sum(character.isdecimal() for character in value)
+    return limit == 0 or digits <= limit
 
 
 def validate_order(
@@ -34,11 +47,11 @@ def validate_order(
                 return f"Line {position} is missing {key}"
         if not line.get("sku"):
             return "SKU must not be empty"
-        if re.fullmatch(r"[+-]?\d+(?:_\d+)*", line["qty"].strip()) is None:
+        if not _is_integer(line["qty"]):
             return "Quantity must be an integer"
         if int(line["qty"]) <= 0:
             return "Quantity must be positive"
-        if re.fullmatch(r"[+-]?\d+(?:_\d+)*", line["unit_price_kopecks"].strip()) is None:
+        if not _is_integer(line["unit_price_kopecks"]):
             return "Unit price must be an integer"
         if int(line["unit_price_kopecks"]) < 0:
             return "Unit price must not be negative"
@@ -70,9 +83,7 @@ def calculate_order_total(
     discount_percent = min(discount_percent, MAX_DISCOUNT_PERCENT)
     discounted_subtotal = subtotal - percent_of(subtotal, discount_percent)
     shipping = (
-        SHIPPING_KOPEKS
-        if shipping_city and discounted_subtotal < FREE_DELIVERY_FROM_KOPEKS
-        else 0
+        SHIPPING_KOPEKS if shipping_city and discounted_subtotal < FREE_DELIVERY_FROM_KOPEKS else 0
     )
     base = discounted_subtotal + shipping
     return base + percent_of(base, VAT_PERCENT)
