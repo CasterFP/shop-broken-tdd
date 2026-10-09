@@ -25,6 +25,7 @@ def validate_order(
     """Return a human readable reason why the order is invalid, or None if it is fine."""
     if not lines:
         return "Order must contain at least one line"
+    seen_skus: set[str] = set()
     for position, line in enumerate(lines, start=1):
         for key in REQUIRED_LINE_KEYS:
             if key not in line:
@@ -39,6 +40,9 @@ def validate_order(
             return "Unit price must be an integer"
         if int(line["unit_price_kopecks"]) < 0:
             return "Unit price must not be negative"
+        if line["sku"] in seen_skus:
+            return "SKU must not repeat"
+        seen_skus.add(line["sku"])
     return None
 
 
