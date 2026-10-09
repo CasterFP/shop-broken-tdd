@@ -45,6 +45,8 @@ def validate_order(
         seen_skus.add(line["sku"])
     if promo_code and promo_code not in PROMO_CODES:
         return "Promo code is not supported"
+    if shipping_city and shipping_city not in SUPPORTED_CITIES:
+        return "Shipping city is not supported"
     return None
 
 
