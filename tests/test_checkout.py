@@ -106,7 +106,9 @@ def test_unknown_promo_code_is_rejected() -> None:
 
 def test_unsupported_city_is_rejected() -> None:
     """Spec 3, rule 10: only cities from SUPPORTED_CITIES are served."""
-    ...
+    reason = validate_order([line()], shipping_city="kzn")
+    assert isinstance(reason, str) and reason
+    assert calculate_order_total([line()], shipping_city="kzn") is None
 
 
 def test_valid_order_passes_validation() -> None:
