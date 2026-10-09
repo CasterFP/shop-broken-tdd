@@ -93,7 +93,7 @@ gate_tests() { run_step "Тесты (pytest)" uv run pytest; }
 # не проверяется: полный набор всегда гоняет check.sh и джоба part2-ci.
 gate_part1_tests() {
   run_step "Тесты (pytest, часть 1)" \
-    uv run pytest tests/test_money.py tests/test_inventory.py tests/test_reporting.py
+    uv run pytest --cov=shop --cov-report=term-missing tests/test_money.py tests/test_inventory.py tests/test_reporting.py
 }
 gate_checkout_tests() {
   run_step "Тесты расчёта заказа + покрытие >= 90%" \
