@@ -74,7 +74,11 @@ def test_zero_quantity_is_rejected() -> None:
 
 def test_non_numeric_price_is_rejected() -> None:
     """Spec 3, rule 6: `unit_price_kopecks` must be a whole number."""
-    ...
+    for price in ("", "free", "1.5", "0x10", "_1", "²"):
+        order = [line(unit_price_kopecks=price)]
+        reason = validate_order(order)
+        assert isinstance(reason, str) and reason
+        assert calculate_order_total(order) is None
 
 
 def test_negative_price_is_rejected() -> None:
