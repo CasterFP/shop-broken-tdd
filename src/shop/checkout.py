@@ -1,7 +1,7 @@
 """Order checkout.
 
 The rules live in `src/shop/specs/checkout.md` - read it first.
-Both functions below are stubs: their signature is final, the bodies are yours.
+Validate warehouse export lines and calculate totals using integer kopecks.
 Do not change the constants: the tests rely on them.
 """
 
@@ -32,6 +32,24 @@ def _is_integer(value: str) -> bool:
     return limit == 0 or digits <= limit
 
 
+def _validate_line(line: dict[str, str], position: int) -> str | None:
+    """Return an invalid export line's reason before numeric conversion."""
+    for key in REQUIRED_LINE_KEYS:
+        if key not in line:
+            return f"Line {position} is missing {key}"
+    if not line["sku"]:
+        return "SKU must not be empty"
+    if not _is_integer(line["qty"]):
+        return "Quantity must be an integer"
+    if int(line["qty"]) <= 0:
+        return "Quantity must be positive"
+    if not _is_integer(line["unit_price_kopecks"]):
+        return "Unit price must be an integer"
+    if int(line["unit_price_kopecks"]) < 0:
+        return "Unit price must not be negative"
+    return None
+
+
 def validate_order(
     lines: list[dict[str, str]],
     promo_code: str = "",
@@ -42,19 +60,9 @@ def validate_order(
         return "Order must contain at least one line"
     seen_skus: set[str] = set()
     for position, line in enumerate(lines, start=1):
-        for key in REQUIRED_LINE_KEYS:
-            if key not in line:
-                return f"Line {position} is missing {key}"
-        if not line.get("sku"):
-            return "SKU must not be empty"
-        if not _is_integer(line["qty"]):
-            return "Quantity must be an integer"
-        if int(line["qty"]) <= 0:
-            return "Quantity must be positive"
-        if not _is_integer(line["unit_price_kopecks"]):
-            return "Unit price must be an integer"
-        if int(line["unit_price_kopecks"]) < 0:
-            return "Unit price must not be negative"
+        reason = _validate_line(line, position)
+        if reason is not None:
+            return reason
         if line["sku"] in seen_skus:
             return "SKU must not repeat"
         seen_skus.add(line["sku"])
