@@ -5,6 +5,8 @@ Both functions below are stubs: their signature is final, the bodies are yours.
 Do not change the constants: the tests rely on them.
 """
 
+import re
+
 PROMO_CODES = {"WELCOME10": 10, "SUMMER15": 15, "VIP35": 35}
 SUPPORTED_CITIES = ("msk", "spb")
 MAX_DISCOUNT_PERCENT = 30
@@ -29,6 +31,8 @@ def validate_order(
                 return f"Line {position} is missing {key}"
         if not line.get("sku"):
             return "SKU must not be empty"
+        if re.fullmatch(r"[+-]?\d+(?:_\d+)*", line["qty"].strip()) is None:
+            return "Quantity must be an integer"
     return None
 
 
