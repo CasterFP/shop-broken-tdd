@@ -1,9 +1,14 @@
 """Order checkout.
 
 The rules live in `src/shop/specs/checkout.md` - read it first.
-Both functions below are stubs: their signature is final, the bodies are yours.
+Validate warehouse export lines and calculate totals using integer kopecks.
 Do not change the constants: the tests rely on them.
 """
+
+import re
+import sys
+
+from shop.money import percent_of
 
 PROMO_CODES = {"WELCOME10": 10, "SUMMER15": 15, "VIP35": 35}
 SUPPORTED_CITIES = ("msk", "spb")
@@ -15,13 +20,57 @@ TIER_DISCOUNTS = ((10, 5), (25, 10), (50, 15))
 REQUIRED_LINE_KEYS = ("sku", "qty", "unit_price_kopecks")
 
 
+def _is_integer(value: str) -> bool:
+    """Check decimal int syntax and its runtime conversion limit without raising."""
+    # str.strip accepts four control characters that int does not accept.
+    if any(character in value for character in "\x1c\x1d\x1e\x1f"):
+        return False
+    if re.fullmatch(r"[+-]?\d+(?:_\d+)*", value.strip()) is None:
+        return False
+    limit = sys.get_int_max_str_digits()
+    digits = sum(character.isdecimal() for character in value)
+    return limit == 0 or digits <= limit
+
+
+def _validate_line(line: dict[str, str], position: int) -> str | None:
+    """Return an invalid export line's reason before numeric conversion."""
+    for key in REQUIRED_LINE_KEYS:
+        if key not in line:
+            return f"Line {position} is missing {key}"
+    if not line["sku"]:
+        return "SKU must not be empty"
+    if not _is_integer(line["qty"]):
+        return "Quantity must be an integer"
+    if int(line["qty"]) <= 0:
+        return "Quantity must be positive"
+    if not _is_integer(line["unit_price_kopecks"]):
+        return "Unit price must be an integer"
+    if int(line["unit_price_kopecks"]) < 0:
+        return "Unit price must not be negative"
+    return None
+
+
 def validate_order(
     lines: list[dict[str, str]],
     promo_code: str = "",
     shipping_city: str = "",
 ) -> str | None:
     """Return a human readable reason why the order is invalid, or None if it is fine."""
-    ...
+    if not lines:
+        return "Order must contain at least one line"
+    seen_skus: set[str] = set()
+    for position, line in enumerate(lines, start=1):
+        reason = _validate_line(line, position)
+        if reason is not None:
+            return reason
+        if line["sku"] in seen_skus:
+            return "SKU must not repeat"
+        seen_skus.add(line["sku"])
+    if promo_code and promo_code not in PROMO_CODES:
+        return "Promo code is not supported"
+    if shipping_city and shipping_city not in SUPPORTED_CITIES:
+        return "Shipping city is not supported"
+    return None
 
 
 def calculate_order_total(
@@ -30,4 +79,19 @@ def calculate_order_total(
     shipping_city: str = "",
 ) -> int | None:
     """Return the order total in kopecks, or None if the order is invalid."""
-    ...
+    if validate_order(lines, promo_code, shipping_city) is not None:
+        return None
+    subtotal = sum(int(line["qty"]) * int(line["unit_price_kopecks"]) for line in lines)
+    quantity = sum(int(line["qty"]) for line in lines)
+    discount_percent = 0
+    for threshold, tier_percent in TIER_DISCOUNTS:
+        if quantity >= threshold:
+            discount_percent = tier_percent
+    discount_percent = max(discount_percent, PROMO_CODES.get(promo_code, 0))
+    discount_percent = min(discount_percent, MAX_DISCOUNT_PERCENT)
+    discounted_subtotal = subtotal - percent_of(subtotal, discount_percent)
+    shipping = (
+        SHIPPING_KOPEKS if shipping_city and discounted_subtotal < FREE_DELIVERY_FROM_KOPEKS else 0
+    )
+    base = discounted_subtotal + shipping
+    return base + percent_of(base, VAT_PERCENT)
